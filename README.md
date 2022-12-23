@@ -2,6 +2,9 @@
 
 This lets you get JSON values and ignore arbitrary trailing text.
 
+Available on [npm](https://www.npmjs.com/package/obvious-json)
+and [github](https://github.com/KernelDeimos/obvious-json)
+
 ```javascript
 const obviously = require('obvious-json');
 
