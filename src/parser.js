@@ -369,6 +369,84 @@ class ArrayParser {
 
 ValueParser.delegates.push(ArrayParser);
 
+class ObjectParser {
+    static parse (ctx) {
+        if ( ctx.head !== '{' ) return ctx.unrecognized();
+        ctx.fwd();
+
+        const value = {};
+
+        {
+            const result = WhitespaceParser.parse(ctx);
+            ctx = result.ctx;
+        }
+
+        let firstValue = true;
+
+        while ( true ) {
+            if ( ! ctx.valid ) {
+                return ctx.invalid('unexpected end of string in object');
+            }
+
+            if ( ctx.head === '}' ) {
+                ctx.fwd();
+                return ctx.result(value);
+            }
+            if ( firstValue ) {
+                firstValue = false;
+            } else {
+                if ( ctx.head !== ',' ) {
+                    return ctx.invalid('missing comma in object');
+                }
+                ctx.fwd();
+                {
+                    const result = WhitespaceParser.parse(ctx);
+                    ctx = result.ctx;
+                }
+            }
+            
+            let key = '';
+            {
+                const result = QuotedStringParser.parse(ctx);
+                if ( result.result === RESULT_INVALID ) {
+                    return result;
+                }
+                if ( result.result === RESULT_UNRECOGNIZED ) {
+                    return ctx.invalid('key must be string');
+                }
+                key = result.value;
+                ctx = result.ctx;
+            }
+            {
+                const result = WhitespaceParser.parse(ctx);
+                ctx = result.ctx;
+            }
+
+            if ( ctx.head !== ':' ) {
+                return ctx.invalid('expected colon in object');
+            }
+            ctx.fwd();
+
+            let val = undefined;
+            {
+                const result = ValueParser.parse(ctx);
+                if ( result.result === RESULT_INVALID ) {
+                    return result;
+                }
+                if ( result.result === RESULT_UNRECOGNIZED ) {
+                    return ctx.invalid('unrecognized value in object');
+                }
+                val = result.value;
+                ctx = result.ctx;
+            }
+
+            value[key] = val;
+        }
+    }
+}
+
+ValueParser.delegates.push(ObjectParser);
+
 const ObviousJSON = {};
 
 ObviousJSON.parse = str => ObviousJSON.parsev(str).value;
@@ -382,4 +460,5 @@ module.exports = {
     QuotedStringParser,
     ValueParser,
     ArrayParser,
+    ObjectParser,
 }

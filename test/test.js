@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { QuotedStringParser, ParseContext, WhitespaceParser, NumberParser, ValueParser, ArrayParser } = require("../src/parser")
+const { QuotedStringParser, ParseContext, WhitespaceParser, NumberParser, ValueParser, ArrayParser, ObjectParser } = require("../src/parser")
 
 const round = (value, m) => Math.round(value * m) / m;
 
@@ -152,6 +152,12 @@ describe('value parser', function () {
         assert.deepEqual(result.value, ["a", 5]);
         assert.equal(result.ctx.valid, false);
     })
+    it('parses an object', function () {
+        let ctx = new ParseContext('  {"a": 5}  ');
+        const result = ValueParser.parse(ctx);
+        assert.deepEqual(result.value, {"a": 5});
+        assert.equal(result.ctx.valid, false);
+    })
     it('stops parsing before another token', function () {
         let ctx = new ParseContext('  5  "test"  ');
         const result = ValueParser.parse(ctx);
@@ -165,6 +171,11 @@ describe('array parser', function () {
         let ctx = new ParseContext('["a"]');
         const result = ArrayParser.parse(ctx);
         assert.deepEqual(result.value, ['a']);
+    })
+    it('parses empty array', function () {
+        let ctx = new ParseContext('[]');
+        const result = ArrayParser.parse(ctx);
+        assert.deepEqual(result.value, []);
     })
     it('parses multiple values', function () {
         let ctx = new ParseContext('["a", "b"]');
@@ -189,6 +200,47 @@ describe('array parser', function () {
     it('ends after closing bracket', function () {
         let ctx = new ParseContext('[ "a" , "b" ]');
         const result = ArrayParser.parse(ctx);
+        assert.equal(result.ctx.valid, false);
+    })
+})
+
+describe('object parser', function () {
+    it('parses single key-value pair', function () {
+        let ctx = new ParseContext('{"a": 5}');
+        const result = ObjectParser.parse(ctx);
+        if ( result.result !== ParseContext.RESULT_VALID ) {
+            console.log(result);
+        }
+        assert.deepEqual(result.value, {"a": 5});
+    })
+    it('parses empty object', function () {
+        let ctx = new ParseContext('{}');
+        const result = ObjectParser.parse(ctx);
+        assert.deepEqual(result.value, {});
+    })
+    it('parses multiple values', function () {
+        let ctx = new ParseContext('{"a": 1, "b": 2}');
+        const result = ObjectParser.parse(ctx);
+        assert.deepEqual(result.value, {a: 1, b: 2});
+    })
+    it('reports invalid on missing comma', function () {
+        let ctx = new ParseContext('{"a": 1 "b": 2}');
+        const result = ObjectParser.parse(ctx);
+        assert.equal(result.result, ParseContext.RESULT_INVALID);
+    })
+    it('reports invalid on trailing comma', function () {
+        let ctx = new ParseContext('{"a": 1, "b": 2, }');
+        const result = ObjectParser.parse(ctx);
+        assert.equal(result.result, ParseContext.RESULT_INVALID);
+    })
+    it('allows whitespace between all syntax characters', function () {
+        let ctx = new ParseContext('{ "a" : 1 , "b" : 2 }');
+        const result = ObjectParser.parse(ctx);
+        assert.deepEqual(result.value, {a: 1, b: 2});
+    })
+    it('ends after closing bracket', function () {
+        let ctx = new ParseContext('{ "a" : 1 , "b" : 2 }');
+        const result = ObjectParser.parse(ctx);
         assert.equal(result.ctx.valid, false);
     })
 })
