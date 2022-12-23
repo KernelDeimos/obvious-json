@@ -133,6 +133,19 @@ class QuotedStringParser {
     }
 }
 
+class WhitespaceParser {
+    static WHITESPACE_CHARS = ' \n\r\t'
+    static parse (ctx) {
+        if ( this.WHITESPACE_CHARS.includes(ctx.head) ) {
+            ctx = ctx.clone();
+            ctx.fwd();
+        }
+        while ( this.WHITESPACE_CHARS.includes(ctx.head) ) {
+            ctx.fwd();
+        }
+        return ctx.result(undefined);
+    }
+}
 
 const ObviousJSON = {};
 
@@ -142,5 +155,6 @@ ObviousJSON.parsev = str => {}
 module.exports = {
     ObviousJSON,
     ParseContext,
+    WhitespaceParser,
     QuotedStringParser
 }

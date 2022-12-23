@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { QuotedStringParser, ParseContext } = require("../src/parser")
+const { QuotedStringParser, ParseContext, WhitespaceParser } = require("../src/parser")
 
 describe('quoted string parser', function () {
     const testCases = [];
@@ -46,4 +46,17 @@ describe('quoted string parser', function () {
             assert.equal(result.value, tc.expected);
         })
     }
+})
+
+describe('whitespace parser', function () {
+    it('does nothing when there\'s no whitespace', function () {
+        let ctx = new ParseContext('abc', 1);
+        ctx = WhitespaceParser.parse(ctx).ctx;
+        assert.equal(ctx.head, 'b');
+    })
+    it('advances all whitespace characters', function () {
+        let ctx = new ParseContext('a \r\n\tbc', 1);
+        ctx = WhitespaceParser.parse(ctx).ctx;
+        assert.equal(ctx.head, 'b');
+    })
 })
