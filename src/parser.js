@@ -315,6 +315,7 @@ class ValueParser {
             ctx = result.ctx;
             break;
         }
+        if ( value === undefined ) return ctx.unrecognized();
         {
             const result = WhitespaceParser.parse(ctx);
             ctx = result.ctx;
@@ -322,6 +323,51 @@ class ValueParser {
         return ctx.result(value);
     }
 }
+
+class ArrayParser {
+    static parse (ctx) {
+        if ( ctx.head !== '[' ) return ctx.unrecognized();
+        ctx.fwd();
+
+        const value = [];
+
+        {
+            const result = WhitespaceParser.parse(ctx);
+            ctx = result.ctx;
+        }
+
+        let firstValue = true;
+
+        while ( true ) {
+            if ( ! ctx.valid ) {
+                return ctx.invalid('unexpected end of string in array');
+            }
+            if ( ctx.head === ']' ) {
+                ctx.fwd();
+                return ctx.result(value);
+            }
+            if ( firstValue ) {
+                firstValue = false;
+            } else {
+                if ( ctx.head !== ',' ) {
+                    return ctx.invalid('missing comma in array');
+                }
+                ctx.fwd();
+            }
+            const result = ValueParser.parse(ctx);
+            if ( result.result === RESULT_INVALID ) {
+                return result;
+            }
+            if ( result.result === RESULT_UNRECOGNIZED ) {
+                return ctx.invalid('non-value in array');
+            }
+            value.push(result.value);
+            ctx = result.ctx;
+        }
+    }
+}
+
+ValueParser.delegates.push(ArrayParser);
 
 const ObviousJSON = {};
 
@@ -335,4 +381,5 @@ module.exports = {
     NumberParser,
     QuotedStringParser,
     ValueParser,
+    ArrayParser,
 }
