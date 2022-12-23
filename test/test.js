@@ -1,5 +1,7 @@
 const assert = require('assert');
-const { QuotedStringParser, ParseContext, WhitespaceParser } = require("../src/parser")
+const { QuotedStringParser, ParseContext, WhitespaceParser, NumberParser } = require("../src/parser")
+
+const round = (value, m) => Math.round(value * m) / m;
 
 describe('quoted string parser', function () {
     const testCases = [];
@@ -58,5 +60,55 @@ describe('whitespace parser', function () {
         let ctx = new ParseContext('a \r\n\tbc', 1);
         ctx = WhitespaceParser.parse(ctx).ctx;
         assert.equal(ctx.head, 'b');
+    })
+})
+
+describe('number parser', function () {
+    it('parses integer', function () {
+        let ctx = new ParseContext('123');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.value, 123);
+    })
+    it('parses fraction (> 1)', function () {
+        let ctx = new ParseContext('1.5');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.value, 1.5);
+    })
+    it('parses fraction (< 1)', function () {
+        let ctx = new ParseContext('0.5');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.value, 0.5);
+    })
+    it('parses negative value', function () {
+        let ctx = new ParseContext('-1.1');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.value, -1.1);
+    })
+
+    it('parses positive exponent', function () {
+        let ctx = new ParseContext('1.1e1');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.value, 11);
+    })
+    it('parses negative exponent', function () {
+        let ctx = new ParseContext('1.1e-1');
+        const result = NumberParser.parse(ctx);
+        let value = result.value;
+        // Precision should be set to the highest value before the text fails
+        value = round(value, Math.pow(10, 16));
+        assert.equal(value, 0.11);
+    })
+    it('parses positive exponent with leading zeros', function () {
+        let ctx = new ParseContext('1.1e001');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.value, 11);
+    })
+    it('parses negative exponent with leading zeros', function () {
+        let ctx = new ParseContext('1.1e-001');
+        const result = NumberParser.parse(ctx);
+        let value = result.value;
+        // Precision should be set to the highest value before the text fails
+        value = round(value, Math.pow(10, 16));
+        assert.equal(value, 0.11);
     })
 })

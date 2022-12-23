@@ -12,6 +12,10 @@ class ParseContext {
         return this.text[this.pos];
     }
 
+    get headb () {
+        return this.text.charCodeAt(this.pos);
+    }
+
     clone () {
         return new ParseContext(this.text, this.pos);
     }
@@ -133,6 +137,113 @@ class QuotedStringParser {
     }
 }
 
+class NumberParser {
+    static parse (ctx) {
+        ctx = ctx.clone();
+        let negativity = 1;
+        let fractional = 1;
+        let value = 0;
+
+        let expValue = 0;
+        let expNegativity = 1;
+
+        if ( ctx.head == '-' ) {
+            negativity *= -1;
+            ctx.fwd();
+        }
+
+        let state;
+        let STATE_JUST_BEFORE_FRACTIONAL, STATE_FRACTIONAL;
+        let STATE_JUST_BEFORE_EXP, STATE_EXP_Z, STATE_EXP;
+        let STATE_INTEGRAL;
+        STATE_JUST_BEFORE_FRACTIONAL = {
+            parse_: () => {
+                if ( ctx.head == '.' ) {
+                    ctx.fwd();
+                    state = STATE_FRACTIONAL;
+                    return;
+                }
+                state = STATE_JUST_BEFORE_EXP;
+            }
+        };
+        STATE_INTEGRAL = {
+            parse_: () => {
+                if ( ! ctx.valid || ctx.head < '0' || ctx.head > '9' ) {
+                    state = STATE_JUST_BEFORE_FRACTIONAL;
+                    return;
+                }
+                value *= 10;
+                value += ctx.head - '0';
+                ctx.fwd()
+            }
+        };
+        STATE_FRACTIONAL = {
+            parse_: () => {
+                if ( ! ctx.valid || ctx.head < '0' || ctx.head > '9' ) {
+                    state = STATE_JUST_BEFORE_EXP;
+                    return;
+                }
+                fractional /= 10;
+                value += fractional * (ctx.head - '0');
+                ctx.fwd();
+            }
+        }
+        STATE_JUST_BEFORE_EXP = {
+            parse_: () => {
+                const e = String.fromCharCode(ctx.headb | 0x20);
+                if ( e !== 'e' ) {
+                    return ctx.result(value * negativity);
+                }
+
+                ctx.fwd();
+                if ( ctx.head === '-' ) expNegativity = -1;
+                if ( ctx.head === '-' || ctx.head === '+' ) {
+                    ctx.fwd();
+                }
+
+                state = STATE_EXP_Z;
+            }
+        }
+        // JSON spec allows an arbitrary number of leading zeros
+        // before the exponent. This is inconsistent with the
+        // integral part of the number.
+        STATE_EXP_Z = {
+            parse_: () => {
+                if ( ctx.head === '0' ) ctx.fwd();
+                else state = STATE_EXP;
+            }
+        }
+        STATE_EXP = {
+            parse_: () => {
+                if ( ! ctx.valid || ctx.head < '0' || ctx.head > '9' ) {
+                    if ( expNegativity > 0 ) {
+                        value *= Math.pow(10, expValue);
+                    } else {
+                        value /= Math.pow(10, expValue);
+                    }
+                    return ctx.result(value);
+                }
+
+                expValue *= 10;
+                expValue += ctx.head - '0';
+                ctx.fwd();
+            }
+        };
+
+        if ( ctx.head === '0' ) {
+            ctx.fwd();
+            state = STATE_JUST_BEFORE_FRACTIONAL;
+        } else {
+            state = STATE_INTEGRAL;
+        }
+
+        while (true) {
+            const end = state.parse_();
+            if ( end ) return end;
+        }
+    }
+}
+
 class WhitespaceParser {
     static WHITESPACE_CHARS = ' \n\r\t'
     static parse (ctx) {
@@ -156,5 +267,6 @@ module.exports = {
     ObviousJSON,
     ParseContext,
     WhitespaceParser,
+    NumberParser,
     QuotedStringParser
 }
