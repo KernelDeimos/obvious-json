@@ -1,6 +1,6 @@
 {
   "name": "obvious-json",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "JSON parser that reports length of parsed string and ignores trailing text",
   "main": "entry.js",
   "scripts": {
@@ -8,7 +8,10 @@
   },
   "author": "Coherent Constructs",
   "license": "MIT",
-  "repository": "https://github.com/KernelDeimos/obvious-json",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KernelDeimos/obvious-json"
+  },
   "devDependencies": {
     "mocha": "^10.2.0"
   }
