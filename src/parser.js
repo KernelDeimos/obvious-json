@@ -20,6 +20,12 @@ class ParseContext {
         return this.text.charCodeAt(this.pos);
     }
 
+    atLiteral (str) {
+        const l = this.text.length - this.pos;
+        if ( str.length > l ) return false;
+        return this.text.substr(this.pos, str.length) === str;
+    }
+
     clone () {
         return new ParseContext(this.text, this.pos);
     }
@@ -272,6 +278,51 @@ class WhitespaceParser {
     }
 }
 
+class ValueParser {
+    static delegates = [
+        QuotedStringParser,
+        NumberParser,
+        {
+            parse: ctx => {
+                const known = {true:true,false:false,null:null};
+                for ( const keyword in known ) {
+                    if ( ctx.atLiteral(keyword) ) {
+                        ctx = ctx.clone();
+                        ctx.fwd(keyword.length);
+                        return ctx.result(known[keyword]);
+                    }
+                }
+                return ctx.unrecognized();
+            }
+        }
+    ];
+    static parse(ctx) {
+        ctx = ctx.clone();
+        let value = undefined;
+        {
+            const result = WhitespaceParser.parse(ctx);
+            ctx = result.ctx;
+        }
+        for ( const delegate of this.delegates ) {
+            const result = delegate.parse(ctx);
+            if ( result.result === ParseContext.RESULT_UNRECOGNIZED ) {
+                continue;
+            }
+            if ( result.result === ParseContext.RESULT_INVALID ) {
+                return result;
+            }
+            value = result.value;
+            ctx = result.ctx;
+            break;
+        }
+        {
+            const result = WhitespaceParser.parse(ctx);
+            ctx = result.ctx;
+        }
+        return ctx.result(value);
+    }
+}
+
 const ObviousJSON = {};
 
 ObviousJSON.parse = str => ObviousJSON.parsev(str).value;
@@ -282,5 +333,6 @@ module.exports = {
     ParseContext,
     WhitespaceParser,
     NumberParser,
-    QuotedStringParser
+    QuotedStringParser,
+    ValueParser,
 }

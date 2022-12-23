@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { QuotedStringParser, ParseContext, WhitespaceParser, NumberParser } = require("../src/parser")
+const { QuotedStringParser, ParseContext, WhitespaceParser, NumberParser, ValueParser } = require("../src/parser")
 
 const round = (value, m) => Math.round(value * m) / m;
 
@@ -125,5 +125,31 @@ describe('number parser', function () {
         let ctx = new ParseContext('1.e1');
         const result = NumberParser.parse(ctx);
         assert.equal(result.result, ParseContext.RESULT_INVALID);
+    })
+})
+
+describe('value parser', function () {
+    it('parses a string', function () {
+        let ctx = new ParseContext('  "string"  ');
+        const result = ValueParser.parse(ctx);
+        assert.equal(result.value, 'string');
+        assert.equal(result.ctx.valid, false);
+    })
+    it('parses a number', function () {
+        let ctx = new ParseContext('  5  ');
+        const result = ValueParser.parse(ctx);
+        assert.equal(result.value, 5);
+        assert.equal(result.ctx.valid, false);
+    })
+    it('parses a keyword', function () {
+        let ctx = new ParseContext('  true  ');
+        const result = ValueParser.parse(ctx);
+        assert.equal(result.value, true);
+    })
+    it('stops parsing before another token', function () {
+        let ctx = new ParseContext('  5  "test"  ');
+        const result = ValueParser.parse(ctx);
+        assert.equal(result.value, 5);
+        assert.equal(result.ctx.valid, true);
     })
 })
