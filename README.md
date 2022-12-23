@@ -54,3 +54,6 @@ these are welcome. Here are some known issues:
 - Numbers with an exponential component are calculated with floating-point
   error (ex: 1.1e-1 = 0.11000000000000001). The builtin JSON parser would
   report 0.11 exactly.
+- This has only been tested as a CJS module. If anyone tries it as an ESM
+  module and it works please close [this issue](https://github.com/KernelDeimos/obvious-json/issues/1).
+  If it does not work, fixing that would be a welcome change.
