@@ -3,6 +3,10 @@ const RESULT_INVALID = 1;
 const RESULT_VALID = 2;
 
 class ParseContext {
+    static RESULT_UNRECOGNIZED = RESULT_UNRECOGNIZED;
+    static RESULT_INVALID = RESULT_INVALID;
+    static RESULT_VALID = RESULT_VALID;
+
     constructor (text, pos) {
         this.text = text;
         this.pos = pos || 0;
@@ -147,9 +151,15 @@ class NumberParser {
         let expValue = 0;
         let expNegativity = 1;
 
+        if ( ! ctx.valid ) return ctx.unrecognized();
+
         if ( ctx.head == '-' ) {
             negativity *= -1;
             ctx.fwd();
+        }
+
+        if ( ctx.head < '0' || ctx.head > '9' ) {
+            return ctx.unrecognized();
         }
 
         let state;
@@ -161,6 +171,10 @@ class NumberParser {
                 if ( ctx.head == '.' ) {
                     ctx.fwd();
                     state = STATE_FRACTIONAL;
+                    // According to JSON spec, a digit must follow
+                    if ( ! ctx.valid || ctx.head < '0' || ctx.head > '9' ) {
+                        return ctx.invalid('digit required after decimal point');
+                    }
                     return;
                 }
                 state = STATE_JUST_BEFORE_EXP;

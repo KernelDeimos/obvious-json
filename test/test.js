@@ -111,4 +111,19 @@ describe('number parser', function () {
         value = round(value, Math.pow(10, 16));
         assert.equal(value, 0.11);
     })
+    it('reports unrecognized on empty string', function () {
+        let ctx = new ParseContext('');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.result, ParseContext.RESULT_UNRECOGNIZED);
+    })
+    it('reports unrecognized on double-quote', function () {
+        let ctx = new ParseContext('"');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.result, ParseContext.RESULT_UNRECOGNIZED);
+    })
+    it('reports invalid on 1.e1', function () {
+        let ctx = new ParseContext('1.e1');
+        const result = NumberParser.parse(ctx);
+        assert.equal(result.result, ParseContext.RESULT_INVALID);
+    })
 })
