@@ -1,0 +1,14 @@
+{
+  "name": "obvious-json",
+  "version": "1.0.0",
+  "description": "JSON parser that reports length of parsed string and ignores trailing text",
+  "main": "entry.js",
+  "scripts": {
+    "test": "npx mocha"
+  },
+  "author": "Coherent Constructs",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^10.2.0"
+  }
+}
