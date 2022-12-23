@@ -64,8 +64,6 @@ class ParseContext {
     }
 }
 
-class Parser {}
-
 class QuotedStringParser {
     static CHAR_ESCAPES = {
         b: '\n',
@@ -449,8 +447,21 @@ ValueParser.delegates.push(ObjectParser);
 
 const ObviousJSON = {};
 
-ObviousJSON.parse = str => ObviousJSON.parsev(str).value;
-ObviousJSON.parsev = str => {}
+ObviousJSON.parse = str => ObviousJSON.parsev(str).data;
+ObviousJSON.parsev = str => {
+    const ctx = new ParseContext(str);
+    const result = ValueParser.parse(ctx);
+    if ( result.result === RESULT_UNRECOGNIZED ) {
+        throw new Error('value not recognized by a JSON value parser');
+    }
+    if ( result.result === RESULT_INVALID ) {
+        throw new Error('parse error: ' + result.message);
+    }
+    return {
+        data: result.value,
+        length: result.ctx.pos
+    };
+}
 
 module.exports = {
     ObviousJSON,

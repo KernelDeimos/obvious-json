@@ -42,3 +42,15 @@ imagination can conjure.
 Any alternate JSON implementation I found, such as streaming parsers, either
 didn't have an obvious way to get just a single value or had an entirely different
 purpose such as preservation of comments.
+
+## Contributing
+
+If obvious-json doesn't do something it obviously should, then PRs to correct
+these are welcome. Here are some known issues:
+
+- Parser context expects string input, so it doesn't work for asynchronous
+  streaming. A change to add this would be considered in-scope as long as
+  it doesn't break the existing interface.
+- Numbers with an exponential component are calculated with floating-point
+  error (ex: 1.1e-1 = 0.11000000000000001). The builtin JSON parser would
+  report 0.11 exactly.

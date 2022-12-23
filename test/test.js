@@ -1,5 +1,14 @@
 const assert = require('assert');
-const { QuotedStringParser, ParseContext, WhitespaceParser, NumberParser, ValueParser, ArrayParser, ObjectParser } = require("../src/parser")
+const {
+    QuotedStringParser,
+    ParseContext,
+    WhitespaceParser,
+    NumberParser,
+    ValueParser,
+    ArrayParser,
+    ObjectParser,
+    ObviousJSON
+} = require("../src/parser")
 
 const round = (value, m) => Math.round(value * m) / m;
 
@@ -243,4 +252,15 @@ describe('object parser', function () {
         const result = ObjectParser.parse(ctx);
         assert.equal(result.ctx.valid, false);
     })
+})
+
+describe('exported api', function () {
+    it('reports correct length', function () {
+        const ret = ObviousJSON.parsev(' {"a": 5} trailing-nonsense-is-allowed');
+        assert.equal(ret.length, 10);
+    });
+    it('reports correct value', function () {
+        const ret = ObviousJSON.parsev(' {"a": 5}{"b": 4}');
+        assert.deepEqual(ret.data, {a: 5})
+    });
 })
