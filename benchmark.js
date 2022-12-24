@@ -1,5 +1,5 @@
 const obvious = require('./entry');
-const NUMBER_OF_OBJECTS = Math.pow(10,2);
+const NUMBER_OF_OBJECTS = Math.pow(10,5);
 const PROTO = {};
 
 for ( const letter of ['A','B','C','D','E','F','G'] ) {

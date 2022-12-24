@@ -2,7 +2,8 @@ const addon = require('../node_addon/build/Release/addon');
 const SegfaultHandler = require('segfault-handler');
 SegfaultHandler.registerHandler('crash.log');
 
-const USE_GYP_ADDON = true;
+// const USE_GYP_ADDON = true;
+const USE_GYP_ADDON = false;
 
 const RESULT_UNRECOGNIZED = 0;
 const RESULT_INVALID = 1;

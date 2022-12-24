@@ -1,6 +1,6 @@
 # C++ Implementation Branch WARNING
 
-It's not working yet. This is 10,000 times slower and will crash your computer.
+It's not as fast as the javascript implementation for some reason.
 
 # Obvious JSON Parser
 

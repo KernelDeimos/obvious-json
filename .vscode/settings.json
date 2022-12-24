@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.jrl": "javascript",
+        "string_view": "cpp"
+    }
+}

@@ -35,12 +35,25 @@ struct ParseResult {
     ParserContext* ctx;
 };
 
+class Parser;
+
+struct ParserMap {
+    Parser* pvalue;
+    Parser* pstring;
+    Parser* pnumber;
+    Parser* pobject;
+    Parser* parray;
+    Parser* pkeyword;
+    Parser* pws;
+};
+
 class ParserContext {
     public:
-        string text;
+        ParserMap parsers;
+        string* text;
         long unsigned int pos;
-        ParserContext(string);
-        ParserContext(string, long unsigned int);
+        ParserContext(string*);
+        ParserContext(string*, long unsigned int);
         char getHead();
         bool atLiteral(string);
         ParserContext* clone();
@@ -54,45 +67,47 @@ class ParserContext {
         ParseResult invalid(string);
 };
 
-ParserContext::ParserContext(string text) {
+ParserContext::ParserContext(string* text) {
     this->text = text;
     this->pos = 0;
 }
 
-ParserContext::ParserContext(string text, long unsigned int pos) {
+ParserContext::ParserContext(string* text, long unsigned int pos) {
     this->text = text;
     this->pos = pos;
 }
 
 char ParserContext::getHead() {
-    return this->text[this->pos];
+    return this->text->at(this->pos);
 }
 
 bool ParserContext::atLiteral(string str) {
-    int l = this->text.length() - this->pos;
+    int l = this->text->length() - this->pos;
     int L = str.length();
     if ( L > l ) return false;
     for ( int i = 0 ; i < L ; i++ ) {
-        if ( str[i] != this->text[this->pos + i] ) return false;
+        if ( str[i] != this->text->at(this->pos + i) ) return false;
     }
     return true;
 }
 
 ParserContext* ParserContext::clone () {
-    return new ParserContext(this->text, this->pos);
+    ParserContext* newCtx = new ParserContext(this->text, this->pos);
+    newCtx->parsers = this->parsers;
+    return newCtx;
 }
 
 void ParserContext::fwd () { this->pos++; }
 void ParserContext::fwd (int n) { this->pos += n; }
 
 string ParserContext::eat(int n) {
-    string str = this->text.substr(this->pos, n);
+    string str = this->text->substr(this->pos, n);
     this->fwd(n);
     return str;
 }
 
 bool ParserContext::isValid() {
-    return this->pos < this->text.length();
+    return this->pos < this->text->length();
 }
 
 ParseResult ParserContext::result (Local<Value> value) {
@@ -239,7 +254,6 @@ ParseResult NumberParser::parse (ParserContext* ctx) {
     }
 
     for ( ;; ) {
-        cout << "NumberParser\n";
         switch ( state ) {
             case STATE_JUST_BEFORE_FRACTIONAL: {
                 if ( ctx->getHead() == '.' ) {
@@ -319,10 +333,9 @@ ParseResult NumberParser::parse (ParserContext* ctx) {
     }
 }
 
-class WhitespaceParser {
+class WhitespaceParser: public Parser {
     public:
-        Isolate* isolate;
-        ParseResult parse(ParserContext* ctx);
+        ParseResult parse(ParserContext* ctx) override;
         WhitespaceParser (Isolate* isolate) {
             this->isolate = isolate;
         };
@@ -339,7 +352,6 @@ ParseResult WhitespaceParser::parse(ParserContext* ctx) {
         ctx->fwd();
     }
     while ( ctx->isValid() ) {
-        cout << "whitespace\n";
         head = ctx->getHead();
         if (
             head != ' ' && head != '\n' &&
@@ -358,10 +370,6 @@ class ArrayParser: public Parser {
         ArrayParser (Isolate* isolate, Parser* pvalue) {
             this->isolate = isolate;
             this->pvalue = pvalue;
-            this->pws = new WhitespaceParser(isolate);
-        };
-        ~ArrayParser () {
-            delete this->pws;
         };
 };
 
@@ -375,14 +383,13 @@ ParseResult ArrayParser::parse(ParserContext* ctx) {
     Local<Array> value = Array::New(this->isolate);
 
     {
-        ParseResult result = this->pws->parse(ctx);
+        ParseResult result = ctx->parsers.pws->parse(ctx);
         ctx = result.ctx;
     }
 
     bool firstValue = true;
 
     for ( ;; ) {
-        cout << "ArrayParser\n";
         if ( ! ctx->isValid() ) {
             return ctx->invalid("unexpected end of string in array");
         }
@@ -417,18 +424,8 @@ ParseResult ArrayParser::parse(ParserContext* ctx) {
 class ObjectParser: public Parser {
     public:
         ParseResult parse(ParserContext* ctx) override;
-        WhitespaceParser* pws;
-        Parser* pvalue;
-        Parser* pkey;
         ObjectParser (Isolate* isolate, Parser* pvalue) {
             this->isolate = isolate;
-            this->pvalue = pvalue;
-            this->pkey = new QuotedStringParser(isolate);
-            this->pws = new WhitespaceParser(isolate);
-        };
-        ~ObjectParser () {
-            delete this->pkey;
-            delete this->pws;
         };
 };
 
@@ -441,14 +438,13 @@ ParseResult ObjectParser::parse(ParserContext* ctx) {
     Local<Object> value = Object::New(this->isolate);
 
     {
-        ParseResult result = this->pws->parse(ctx);
+        ParseResult result = ctx->parsers.pws->parse(ctx);
         ctx = result.ctx;
     }
 
     bool firstValue = true;
 
     for ( ;; ) {
-        cout << "ObjectParser\n";
         if ( ! ctx->isValid() ) {
             return ctx->invalid("unexpected end of string in object");
         }
@@ -466,14 +462,14 @@ ParseResult ObjectParser::parse(ParserContext* ctx) {
             }
             ctx->fwd();
             {
-                ParseResult result = this->pws->parse(ctx);
+                ParseResult result = ctx->parsers.pws->parse(ctx);
                 ctx = result.ctx;
             }
         }
 
         Local<Value> key;
         {
-            ParseResult result = this->pkey->parse(ctx);
+            ParseResult result = ctx->parsers.pstring->parse(ctx);
             if ( result.status == INVALID ) return result;
             if ( result.status == UNRECOGNIZED ) {
                 return ctx->invalid("key must be a string");
@@ -482,7 +478,7 @@ ParseResult ObjectParser::parse(ParserContext* ctx) {
             ctx = result.ctx;
         }
         {
-            ParseResult result = this->pws->parse(ctx);
+            ParseResult result = ctx->parsers.pws->parse(ctx);
             ctx = result.ctx;
         }
 
@@ -493,11 +489,9 @@ ParseResult ObjectParser::parse(ParserContext* ctx) {
 
         Local<Value> val;
         {
-            ParseResult result = this->pvalue->parse(ctx);
+            ParseResult result = ctx->parsers.pvalue->parse(ctx);
             if ( result.status == INVALID ) return result;
             if ( result.status == UNRECOGNIZED ) {
-                cout << "a:" + std::to_string(ctx->pos) + ";\n";
-                cout << "a:" + std::to_string(ctx->pos) + ";\n";
                 return ctx->invalid("unrecognized value in object");
             }
             val = result.value;
@@ -542,26 +536,9 @@ ParseResult KeywordParser::parse(ParserContext* ctx) {
 class ValueParser: public Parser {
     public:
         ParseResult parse(ParserContext* ctx) override;
-        Parser** delegates;
-        WhitespaceParser* pws;
         ValueParser (Isolate* isolate) {
             this->isolate = isolate;
-            this->pws = new WhitespaceParser(isolate);
-            this->delegates = new Parser*[5];
-            this->delegates[0] = new QuotedStringParser(isolate);
-            this->delegates[1] = new NumberParser(isolate);
-            this->delegates[2] = new KeywordParser(isolate);
-            this->delegates[3] = new ArrayParser(isolate, this);
-            this->delegates[4] = new ObjectParser(isolate, this);
         };
-        ~ValueParser () {
-            delete this->pws;
-            for ( int i = 0 ; i < 5 ; i++ ) {
-                delete this->delegates[i];
-            }
-            this->delegates[2] = NULL;
-            delete this->delegates;
-        }
 };
 
 ParseResult ValueParser::parse(ParserContext* ctx) {
@@ -569,13 +546,22 @@ ParseResult ValueParser::parse(ParserContext* ctx) {
     bool valueSet = false;
     Local<Value> value;
 
+    Parser* delegates[] = {
+        ctx->parsers.pstring,
+        ctx->parsers.pnumber,
+        ctx->parsers.pkeyword,
+        ctx->parsers.parray,
+        ctx->parsers.pobject
+    };
+
+
     {
-        ParseResult result = pws->parse(ctx);
+        ParseResult result = ctx->parsers.pws->parse(ctx);
         ctx = result.ctx;
     }
 
     for ( int i = 0 ; i < 5 ; i++ ) {
-        Parser* delegate = this->delegates[i];
+        Parser* delegate = delegates[i];
         ParseResult result = delegate->parse(ctx);
         if ( result.status == UNRECOGNIZED ) {
             continue;
@@ -592,7 +578,7 @@ ParseResult ValueParser::parse(ParserContext* ctx) {
     if ( ! valueSet ) return ctx->unrecognized();
 
     {
-        ParseResult result = pws->parse(ctx);
+        ParseResult result = ctx->parsers.pws->parse(ctx);
         ctx = result.ctx;
     }
 
@@ -625,7 +611,6 @@ void set_json_state(int* jsonState, char c) {
 }
 
 void ParseValueMethod(const FunctionCallbackInfo<Value>& args) {
-    cout << "a\n";
   Isolate* isolate = args.GetIsolate();
 
   if ( args.Length() != 1 ) {
@@ -650,15 +635,26 @@ void ParseValueMethod(const FunctionCallbackInfo<Value>& args) {
   v8::String::Utf8Value strAsUtf8(isolate, args[0]);
   std::string str(*strAsUtf8);
 
-  ParserContext* ctx = new ParserContext(str);
+  string* mystr = new string(str);
 
-  Parser* parser = new ValueParser(isolate);
+  ParserContext* ctx = new ParserContext(mystr);
 
-    cout << "b\n";
+  ParserMap parsers;
+  parsers.pstring = new QuotedStringParser(isolate);
+  parsers.pnumber = new NumberParser(isolate);
+  parsers.pkeyword = new KeywordParser(isolate);
+  parsers.pws = new WhitespaceParser(isolate);
+  parsers.pvalue = new ValueParser(isolate);
+  parsers.parray = new ArrayParser(isolate, parsers.pvalue);
+  parsers.pobject = new ObjectParser(isolate, parsers.pvalue);
+
+  ctx->parsers = parsers;
+
+  Parser* parser = parsers.pvalue;
+
   ParseResult result = parser->parse(ctx);
 //   delete parser;
 //   delete ctx;
-    cout << "c\n";
 
   if ( result.status == UNRECOGNIZED ) {
     isolate->ThrowException(
@@ -677,7 +673,6 @@ void ParseValueMethod(const FunctionCallbackInfo<Value>& args) {
     );
   }
 
-    cout << "d\n";
 
   Local<Object> infoObject = Object::New(isolate);
 
@@ -686,7 +681,6 @@ void ParseValueMethod(const FunctionCallbackInfo<Value>& args) {
       String::NewFromUtf8(isolate, "length").ToLocalChecked(),
       Number::New(isolate, result.ctx->pos)
   );
-    cout << "d.5\n";
 
   infoObject->Set(
       isolate->GetCurrentContext(),
@@ -694,7 +688,6 @@ void ParseValueMethod(const FunctionCallbackInfo<Value>& args) {
       result.value
   );
 
-    cout << "e\n";
 
   args.GetReturnValue().Set(
     infoObject
