@@ -1,3 +1,7 @@
+# C++ Implementation Branch WARNING
+
+It's not working yet. This is 10,000 times slower and will crash your computer.
+
 # Obvious JSON Parser
 
 This lets you get JSON values and ignore arbitrary trailing text.
