@@ -1,3 +1,9 @@
+const addon = require('../node_addon/build/Release/addon');
+const SegfaultHandler = require('segfault-handler');
+SegfaultHandler.registerHandler('crash.log');
+
+const USE_GYP_ADDON = true;
+
 const RESULT_UNRECOGNIZED = 0;
 const RESULT_INVALID = 1;
 const RESULT_VALID = 2;
@@ -271,7 +277,9 @@ class NumberParser {
             const end = state.parse_();
             if ( end ) return end;
         }
-    }
+    
+    //
+}
 }
 
 class WhitespaceParser {
@@ -337,6 +345,7 @@ class ValueParser {
 class ArrayParser {
     static parse (ctx) {
         if ( ctx.head !== '[' ) return ctx.unrecognized();
+        ctx = ctx.clone();
         ctx.fwd();
 
         const value = [];
@@ -460,19 +469,26 @@ ValueParser.delegates.push(ObjectParser);
 const ObviousJSON = {};
 
 ObviousJSON.parse = str => ObviousJSON.parsev(str).data;
-ObviousJSON.parsev = str => {
-    const ctx = new ParseContext(str);
-    const result = ValueParser.parse(ctx);
-    if ( result.result === RESULT_UNRECOGNIZED ) {
-        throw new Error('value not recognized by a JSON value parser');
+
+if ( USE_GYP_ADDON ) {
+    ObviousJSON.parsev = str => {
+        return addon.parse(str);
     }
-    if ( result.result === RESULT_INVALID ) {
-        throw new Error('parse error: ' + result.message);
+} else {
+    ObviousJSON.parsev = str => {
+        const ctx = new ParseContext(str);
+        const result = ValueParser.parse(ctx);
+        if ( result.result === RESULT_UNRECOGNIZED ) {
+            throw new Error('value not recognized by a JSON value parser');
+        }
+        if ( result.result === RESULT_INVALID ) {
+            throw new Error('parse error: ' + result.message);
+        }
+        return {
+            data: result.value,
+            length: result.ctx.pos
+        };
     }
-    return {
-        data: result.value,
-        length: result.ctx.pos
-    };
 }
 
 module.exports = {

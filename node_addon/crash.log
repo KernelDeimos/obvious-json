@@ -1,0 +1,12 @@
+PID 24576 received SIGSEGV for address: 0x6be3000
+/home/edube/repos/obvious-json/node_modules/segfault-handler/build/Release/segfault-handler.node(+0x2ff6)[0x7fbf809a6ff6]
+/lib64/libpthread.so.0(+0x12c20)[0x7fbf83af4c20]
+/home/edube/repos/obvious-json/node_addon/build/Release/addon.node(_ZN4demo13ParserContext7getHeadEv+0x7)[0x7fbf80babb37]
+/home/edube/repos/obvious-json/node_addon/build/Release/addon.node(_ZN4demo16WhitespaceParser5parseEPNS_13ParserContextE+0x80)[0x7fbf80babfd0]
+/home/edube/repos/obvious-json/node_addon/build/Release/addon.node(_ZN4demo11ValueParser5parseEPNS_13ParserContextE+0x32)[0x7fbf80bac042]
+/home/edube/repos/obvious-json/node_addon/build/Release/addon.node(_ZN4demo11ArrayParser5parseEPNS_13ParserContextE+0x124)[0x7fbf80bacfb4]
+/home/edube/repos/obvious-json/node_addon/build/Release/addon.node(_ZN4demo11ValueParser5parseEPNS_13ParserContextE+0x66)[0x7fbf80bac076]
+/home/edube/repos/obvious-json/node_addon/build/Release/addon.node(_ZN4demo16ParseValueMethodERKN2v820FunctionCallbackInfoINS0_5ValueEEE+0x214)[0x7fbf80bad484]
+node[0xd972d0]
+node(_ZN2v88internal21Builtin_HandleApiCallEiPmPNS0_7IsolateE+0xaf)[0xd9880f]
+node[0x16dabb9]
