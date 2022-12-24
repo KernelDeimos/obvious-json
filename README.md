@@ -60,3 +60,31 @@ these are welcome. Here are some known issues:
 - This has only been tested as a CJS module. If anyone tries it as an ESM
   module and it works please close [this issue](https://github.com/KernelDeimos/obvious-json/issues/1).
   If it does not work, fixing that would be a welcome change.
+- This parser is slower than the built-in JSON parser, so a C++ implementation
+  might be worthwhile.
+- Benchmark is not very thorough; it could measure each parser separately.
+
+## Benchmark
+
+You can compare with the native JSON parser by running:
+```
+node node_modules/obvious-json/benchmark
+```
+
+This was the output I got when I tried it. It shows about a 7x
+performance decrease from the built-in parser. 
+
+```
+native  parser: 208.0862100124359ms
+obvious parser: 1491.626119852066ms
+difference: 716.831%
+```
+
+The test is done using an array of 100000 objects, each containing
+7 numbers with fractional and exponential components, 7 strings
+each containing a quote escape and two unicode escapes, and 7 of
+the value `true`.
+
+Commenting out all but the numeric values brings the decrease down
+from 7x ro 5.5x. Contributions of other performance findings or
+benchmarks are very welcome.
