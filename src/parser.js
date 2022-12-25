@@ -475,6 +475,8 @@ ObviousJSON.parsev = str => {
     };
 }
 
+ObviousJSON.ValueParser = ValueParser;
+
 module.exports = {
     ObviousJSON,
     ParseContext,
