@@ -1,6 +1,6 @@
 {
   "name": "obvious-json",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "JSON parser that reports length of parsed string and ignores trailing text",
   "main": "entry.js",
   "scripts": {
